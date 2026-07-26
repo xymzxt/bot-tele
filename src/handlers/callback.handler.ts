@@ -24,6 +24,7 @@ import {
   showHome,
   showMonitoringMenu,
   showOwnerPanel,
+  showProfile,
   showSettingsMenu,
 } from '../menus/main.menu';
 import { defaultSession, type AIMode, type DevToolMode } from '../types/session';
@@ -65,6 +66,11 @@ export const registerCallbackHandler = (
       return;
     }
 
+    if (data.startsWith('menu:')) {
+      await handleHomeMenuCallback(ctx, data);
+      return;
+    }
+
     if (data.startsWith('ai:')) {
       await enterAiMode(ctx, data.replace('ai:', '') as AIMode);
       return;
@@ -100,6 +106,40 @@ export const registerCallbackHandler = (
 
     await handleNamedCallback(ctx, data, services);
   });
+};
+
+const handleHomeMenuCallback = async (ctx: BotContext, data: string): Promise<void> => {
+  switch (data) {
+    case 'menu:ai':
+      await showAIMenu(ctx);
+      return;
+    case 'menu:github':
+      await showGitHubMenu(ctx);
+      return;
+    case 'menu:file':
+      await showFileManagerMenu(ctx);
+      return;
+    case 'menu:deploy':
+      await showDeployMenu(ctx);
+      return;
+    case 'menu:tools':
+      await showDevToolsMenu(ctx);
+      return;
+    case 'menu:monitoring':
+      await showMonitoringMenu(ctx);
+      return;
+    case 'menu:settings':
+      await showSettingsMenu(ctx);
+      return;
+    case 'menu:profile':
+      await showProfile(ctx);
+      return;
+    case 'menu:owner':
+      await showOwnerPanel(ctx);
+      return;
+    default:
+      await showHome(ctx);
+  }
 };
 
 const handleNamedCallback = async (
