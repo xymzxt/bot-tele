@@ -39,19 +39,16 @@ export const showHome = async (ctx: BotContext): Promise<void> => {
 
   const name = ctx.from?.first_name ? escapeHtml(ctx.from.first_name) : 'Developer';
   await replyWithMainKeyboard(
-    ctx,
-    [
-      '🏠 <b>Telegram Developer Assistant</b>',
-      '',
-      `Halo, <b>${name}</b>!`,
-      'Bot siap membantu AI coding, GitHub manager, file manager, deployment, developer tools, monitoring, dan settings.',
-      '',
-      'Reply Keyboard di bawah sekarang khusus tombol cepat:',
-      '🏓 Ping • ⏱ Runtime • 📈 Status • ❓ Help',
-      '',
-      'Menu fitur utama dipindahkan ke tombol inline di chat.',
-    ].join('\n'),
-  );
+  ctx,
+  [
+    '🏠 <b>Telegram Developer Assistant</b>',
+    '',
+    `Halo, <b>${name}</b>!`,
+    'Bot siap membantu AI coding, GitHub manager, file manager, deployment, developer tools, monitoring, dan settings.',
+    '',
+    'Pilih fitur yang ingin digunakan melalui menu di bawah.',
+  ].join('\n'),
+);
 
   await replyWithInlineKeyboard(
     ctx,
