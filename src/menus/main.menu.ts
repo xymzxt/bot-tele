@@ -1,6 +1,10 @@
 import type { InlineKeyboardMarkup } from 'telegraf/types';
 import type { BotContext } from '../bot/context';
-import { replyWithInlineKeyboard, replyWithMainKeyboard } from '../bot/messages';
+import {
+  editOrReplyWithInlineKeyboard,
+  replyWithInlineKeyboard,
+  replyWithMainKeyboard,
+} from '../bot/messages';
 import { withNav } from '../bot/keyboards';
 import { Callback } from '../constants/callbacks';
 import { env } from '../config/env';
@@ -39,18 +43,29 @@ export const showHome = async (ctx: BotContext): Promise<void> => {
 
   const name = ctx.from?.first_name ? escapeHtml(ctx.from.first_name) : 'Developer';
   await replyWithMainKeyboard(
-  ctx,
-  [
-    '🏠 <b>Telegram Developer Assistant</b>',
-    '',
-    `Halo, <b>${name}</b>!`,
-    'Bot siap membantu AI coding, GitHub manager, file manager, deployment, developer tools, monitoring, dan settings.',
-    '',
-    'Pilih fitur yang ingin digunakan melalui menu di bawah.',
-  ].join('\n'),
-);
+    ctx,
+    [
+      '🏠 <b>Telegram Developer Assistant</b>',
+      '',
+      `Halo, <b>${name}</b>!`,
+      'Bot siap membantu AI coding, GitHub manager, file manager, deployment, developer tools, monitoring, dan settings.',
+      '',
+      'Pilih fitur yang ingin digunakan melalui menu di bawah.',
+    ].join('\n'),
+  );
 
   await replyWithInlineKeyboard(
+    ctx,
+    '📌 <b>Menu Fitur</b>\n\nPilih fitur yang ingin dibuka:',
+    homeMenuKeyboard(ctx.from?.id === env.OWNER_TELEGRAM_ID),
+  );
+};
+
+export const showHomeMenu = async (ctx: BotContext): Promise<void> => {
+  ctx.session.state = 'idle';
+  ctx.session.lastMenu = 'home';
+
+  await editOrReplyWithInlineKeyboard(
     ctx,
     '📌 <b>Menu Fitur</b>\n\nPilih fitur yang ingin dibuka:',
     homeMenuKeyboard(ctx.from?.id === env.OWNER_TELEGRAM_ID),
@@ -89,7 +104,7 @@ const featurePage = async (
 ): Promise<void> => {
   ctx.session.state = 'idle';
   ctx.session.lastMenu = menu;
-  await replyWithInlineKeyboard(ctx, [`${title}`, '', description].join('\n'), withNav(rows));
+  await editOrReplyWithInlineKeyboard(ctx, [`${title}`, '', description].join('\n'), withNav(rows));
 };
 
 export const showAIMenu = async (ctx: BotContext): Promise<void> =>
@@ -126,7 +141,7 @@ export const showGitHubMenu = async (ctx: BotContext): Promise<void> =>
   ]);
 
 export const showGitHubConnectMenu = async (ctx: BotContext): Promise<void> =>
-  replyWithInlineKeyboard(
+  editOrReplyWithInlineKeyboard(
     ctx,
     [
       '🔑 <b>Connect GitHub</b>',
@@ -220,7 +235,9 @@ export const showSettingsMenu = async (ctx: BotContext): Promise<void> =>
 
 export const showProfile = async (ctx: BotContext): Promise<void> => {
   const user = ctx.user;
-  await replyWithMainKeyboard(
+  ctx.session.lastMenu = 'profile';
+
+  await editOrReplyWithInlineKeyboard(
     ctx,
     [
       '👤 <b>Profile</b>',
@@ -231,6 +248,7 @@ export const showProfile = async (ctx: BotContext): Promise<void> => {
       `Role : <b>${escapeHtml(user?.role ?? 'user')}</b>`,
       `Banned : <b>${user?.is_banned ? 'Ya' : 'Tidak'}</b>`,
     ].join('\n'),
+    withNav([]),
   );
 };
 
@@ -241,7 +259,7 @@ export const showOwnerPanel = async (ctx: BotContext): Promise<void> => {
   }
 
   ctx.session.lastMenu = 'owner';
-  await replyWithInlineKeyboard(
+  await editOrReplyWithInlineKeyboard(
     ctx,
     '👑 <b>Owner Panel</b>\n\nKelola broadcast, statistik user, maintenance mode, backup, restore, log, dan health check.',
     withNav([
