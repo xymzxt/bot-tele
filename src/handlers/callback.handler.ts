@@ -1,7 +1,11 @@
 import type { Telegraf } from 'telegraf';
 import type { BotContext } from '../bot/context';
-import { cancelInlineKeyboard, removeKeyboard } from '../bot/keyboards';
-import { replyWithInlineKeyboard, replyWithMainKeyboard } from '../bot/messages';
+import { cancelInlineKeyboard, removeKeyboard, withNav } from '../bot/keyboards';
+import {
+  editOrReplyWithInlineKeyboard,
+  replyWithInlineKeyboard,
+  replyWithMainKeyboard,
+} from '../bot/messages';
 import { Callback } from '../constants/callbacks';
 import { env } from '../config/env';
 import { GitHubAuthService } from '../github/githubAuth.service';
@@ -21,7 +25,7 @@ import {
   showFileManagerMenu,
   showGitHubConnectMenu,
   showGitHubMenu,
-  showHome,
+  showHomeMenu,
   showMonitoringMenu,
   showOwnerPanel,
   showProfile,
@@ -52,7 +56,7 @@ export const registerCallbackHandler = (
     }
 
     if (data === Callback.NavHome) {
-      await showHome(ctx);
+      await showHomeMenu(ctx);
       return;
     }
 
@@ -92,14 +96,19 @@ export const registerCallbackHandler = (
     }
 
     if (data.startsWith('settings:')) {
-      await replyWithMainKeyboard(ctx, '⚙️ Settings MVP: konfigurasi detail dapat ditambahkan di tabel settings per user.');
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        '⚙️ <b>Settings</b>\n\nSettings MVP: konfigurasi detail dapat ditambahkan di tabel settings per user.',
+        withNav([]),
+      );
       return;
     }
 
     if (data.startsWith('file:')) {
-      await replyWithMainKeyboard(
+      await editOrReplyWithInlineKeyboard(
         ctx,
-        '📂 File Manager MVP: kirim dokumen/file ke chat ini. Bot akan menyimpan metadata dan, jika Supabase aktif, file dapat diupload ke storage.',
+        '📂 <b>File Manager</b>\n\nFile Manager MVP: kirim dokumen/file ke chat ini. Bot akan menyimpan metadata dan, jika Supabase aktif, file dapat diupload ke storage.',
+        withNav([]),
       );
       return;
     }
@@ -138,7 +147,7 @@ const handleHomeMenuCallback = async (ctx: BotContext, data: string): Promise<vo
       await showOwnerPanel(ctx);
       return;
     default:
-      await showHome(ctx);
+      await showHomeMenu(ctx);
   }
 };
 
@@ -159,13 +168,16 @@ const handleNamedCallback = async (
 
     case Callback.GithubOAuth: {
       const url = services.githubAuth.getOAuthUrl(ctx.from!.id);
-      await replyWithInlineKeyboard(
+      await editOrReplyWithInlineKeyboard(
         ctx,
         '🌐 <b>GitHub OAuth</b>\n\nKlik tombol di bawah untuk login GitHub lewat browser. Setelah authorize, bot akan menyimpan token secara terenkripsi.',
         {
           inline_keyboard: [
             [{ text: '🔑 Login GitHub', url }],
-            [{ text: '❌ Cancel', callback_data: Callback.Cancel }],
+            [
+              { text: '⬅️ Back', callback_data: Callback.NavBack },
+              { text: '🏠 Home', callback_data: Callback.NavHome },
+            ],
           ],
         },
       );
@@ -189,29 +201,41 @@ const handleNamedCallback = async (
       return;
 
     case Callback.GithubStatus:
-      await replyWithMainKeyboard(ctx, await services.github.getStatusText(ctx.from!.id));
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        await services.github.getStatusText(ctx.from!.id),
+        withNav([]),
+      );
       return;
 
     case Callback.GithubRepos:
-      await replyWithMainKeyboard(ctx, await services.github.listRepositories(ctx.from!.id));
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        await services.github.listRepositories(ctx.from!.id),
+        withNav([]),
+      );
       return;
 
     case Callback.GithubCreateRepo:
       ctx.session.state = 'awaiting_github_repo_name';
-      await replyWithInlineKeyboard(ctx, '➕ Kirim nama repository baru. Contoh: <code>my-awesome-app</code>', cancelInlineKeyboard);
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        '➕ Kirim nama repository baru. Contoh: <code>my-awesome-app</code>',
+        cancelInlineKeyboard,
+      );
       return;
 
     case Callback.GithubDisconnect:
       await services.github.disconnect(ctx.from!.id);
       ctx.session = defaultSession();
-      await replyWithMainKeyboard(ctx, '✅ GitHub account diputuskan dari bot.');
+      await editOrReplyWithInlineKeyboard(ctx, '✅ GitHub account diputuskan dari bot.', withNav([]));
       return;
 
     case Callback.DeployVercel:
     case Callback.DeployNetlify:
     case Callback.DeployRender:
     case Callback.DeployHistory:
-      await replyWithMainKeyboard(ctx, await services.deploy.listProviders());
+      await editOrReplyWithInlineKeyboard(ctx, await services.deploy.listProviders(), withNav([]));
       return;
 
     case Callback.OwnerBroadcast:
@@ -220,15 +244,19 @@ const handleNamedCallback = async (
         return;
       }
       ctx.session.state = 'awaiting_owner_broadcast';
-      await replyWithInlineKeyboard(ctx, '📢 Kirim pesan broadcast sekarang.', cancelInlineKeyboard);
+      await editOrReplyWithInlineKeyboard(ctx, '📢 Kirim pesan broadcast sekarang.', cancelInlineKeyboard);
       return;
 
     case Callback.OwnerUsers:
-      await replyWithMainKeyboard(ctx, await services.status.status());
+      await editOrReplyWithInlineKeyboard(ctx, await services.status.status(), withNav([]));
       return;
 
     case Callback.OwnerHealth:
-      await replyWithMainKeyboard(ctx, '🩺 Health Check OK. Webhook handler aktif, database dicek melalui menu Status.');
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        '🩺 Health Check OK. Webhook handler aktif, database dicek melalui menu Status.',
+        withNav([]),
+      );
       return;
 
     case 'owner:maintenance_toggle':
@@ -237,27 +265,35 @@ const handleNamedCallback = async (
         return;
       }
       runtimeState.setMaintenanceMode(!runtimeState.isMaintenanceMode());
-      await replyWithMainKeyboard(ctx, `🛠 Maintenance mode: <b>${runtimeState.isMaintenanceMode() ? 'ON' : 'OFF'}</b>`);
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        `🛠 Maintenance mode: <b>${runtimeState.isMaintenanceMode() ? 'ON' : 'OFF'}</b>`,
+        withNav([]),
+      );
       return;
 
     default:
-      await replyWithMainKeyboard(ctx, `Callback belum dikenali: <code>${escapeHtml(data)}</code>`);
+      await editOrReplyWithInlineKeyboard(
+        ctx,
+        `Callback belum dikenali: <code>${escapeHtml(data)}</code>`,
+        withNav([]),
+      );
   }
 };
 
 const handleMonitoringCallback = async (ctx: BotContext, data: string, status: StatusService): Promise<void> => {
   switch (data) {
     case 'monitor:ping':
-      await replyWithMainKeyboard(ctx, await status.ping(ctx.requestStartedAt));
+      await editOrReplyWithInlineKeyboard(ctx, await status.ping(ctx.requestStartedAt), withNav([]));
       return;
     case 'monitor:runtime':
-      await replyWithMainKeyboard(ctx, status.runtime());
+      await editOrReplyWithInlineKeyboard(ctx, status.runtime(), withNav([]));
       return;
     case 'monitor:status':
-      await replyWithMainKeyboard(ctx, await status.status());
+      await editOrReplyWithInlineKeyboard(ctx, await status.status(), withNav([]));
       return;
     default:
-      await replyWithMainKeyboard(ctx, 'Monitoring action belum dikenali.');
+      await editOrReplyWithInlineKeyboard(ctx, 'Monitoring action belum dikenali.', withNav([]));
   }
 };
 
@@ -284,11 +320,14 @@ const routeBack = async (ctx: BotContext): Promise<void> => {
     case 'settings':
       await showSettingsMenu(ctx);
       return;
+    case 'profile':
+      await showProfile(ctx);
+      return;
     case 'owner':
       await showOwnerPanel(ctx);
       return;
     default:
-      await showHome(ctx);
+      await showHomeMenu(ctx);
   }
 };
 
