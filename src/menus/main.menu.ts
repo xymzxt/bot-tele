@@ -10,6 +10,23 @@ import { Callback } from '../constants/callbacks';
 import { env } from '../config/env';
 import { escapeHtml } from '../utils/format';
 
+const setNavigationState = (
+  ctx: BotContext,
+  currentMenu: string,
+  backTo?: string,
+): void => {
+  ctx.session.lastMenu = currentMenu;
+  const temp: Record<string, unknown> = { ...(ctx.session.temp ?? {}), currentMenu };
+
+  if (backTo) {
+    temp.backTo = backTo;
+  } else {
+    delete temp.backTo;
+  }
+
+  ctx.session.temp = temp;
+};
+
 const homeMenuKeyboard = (isOwner: boolean): InlineKeyboardMarkup => {
   const rows: InlineKeyboardMarkup['inline_keyboard'] = [
     [
@@ -39,7 +56,7 @@ const homeMenuKeyboard = (isOwner: boolean): InlineKeyboardMarkup => {
 
 export const showHome = async (ctx: BotContext): Promise<void> => {
   ctx.session.state = 'idle';
-  ctx.session.lastMenu = 'home';
+  setNavigationState(ctx, 'home');
 
   const name = ctx.from?.first_name ? escapeHtml(ctx.from.first_name) : 'Developer';
   await replyWithMainKeyboard(
@@ -63,7 +80,7 @@ export const showHome = async (ctx: BotContext): Promise<void> => {
 
 export const showHomeMenu = async (ctx: BotContext): Promise<void> => {
   ctx.session.state = 'idle';
-  ctx.session.lastMenu = 'home';
+  setNavigationState(ctx, 'home');
 
   await editOrReplyWithInlineKeyboard(
     ctx,
@@ -103,7 +120,7 @@ const featurePage = async (
   rows: InlineKeyboardMarkup['inline_keyboard'],
 ): Promise<void> => {
   ctx.session.state = 'idle';
-  ctx.session.lastMenu = menu;
+  setNavigationState(ctx, menu, 'home');
   await editOrReplyWithInlineKeyboard(ctx, [`${title}`, '', description].join('\n'), withNav(rows));
 };
 
@@ -140,8 +157,10 @@ export const showGitHubMenu = async (ctx: BotContext): Promise<void> =>
     [{ text: '❌ Putuskan Akun', callback_data: Callback.GithubDisconnect }],
   ]);
 
-export const showGitHubConnectMenu = async (ctx: BotContext): Promise<void> =>
-  editOrReplyWithInlineKeyboard(
+export const showGitHubConnectMenu = async (ctx: BotContext): Promise<void> => {
+  setNavigationState(ctx, 'github_connect', 'github');
+
+  await editOrReplyWithInlineKeyboard(
     ctx,
     [
       '🔑 <b>Connect GitHub</b>',
@@ -159,6 +178,7 @@ export const showGitHubConnectMenu = async (ctx: BotContext): Promise<void> =>
       ],
     ]),
   );
+};
 
 export const showFileManagerMenu = async (ctx: BotContext): Promise<void> =>
   featurePage(ctx, 'file', '📂 <b>File Manager</b>', 'Kirim file dokumen ke bot untuk disimpan sebagai metadata. Supabase Storage akan digunakan jika dikonfigurasi.', [
@@ -235,7 +255,7 @@ export const showSettingsMenu = async (ctx: BotContext): Promise<void> =>
 
 export const showProfile = async (ctx: BotContext): Promise<void> => {
   const user = ctx.user;
-  ctx.session.lastMenu = 'profile';
+  setNavigationState(ctx, 'profile', 'home');
 
   await editOrReplyWithInlineKeyboard(
     ctx,
@@ -258,7 +278,7 @@ export const showOwnerPanel = async (ctx: BotContext): Promise<void> => {
     return;
   }
 
-  ctx.session.lastMenu = 'owner';
+  setNavigationState(ctx, 'owner', 'home');
   await editOrReplyWithInlineKeyboard(
     ctx,
     '👑 <b>Owner Panel</b>\n\nKelola broadcast, statistik user, maintenance mode, backup, restore, log, dan health check.',
