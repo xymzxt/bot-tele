@@ -4,10 +4,6 @@ import { Callback } from '../constants/callbacks';
 
 export const mainReplyKeyboard: ReplyKeyboardMarkup = {
   keyboard: [
-    [{ text: Buttons.AI }, { text: Buttons.GitHub }],
-    [{ text: Buttons.FileManager }, { text: Buttons.Deploy }],
-    [{ text: Buttons.DevTools }, { text: Buttons.Monitoring }],
-    [{ text: Buttons.Settings }, { text: Buttons.Profile }],
     [{ text: Buttons.Ping }, { text: Buttons.Runtime }],
     [{ text: Buttons.Status }, { text: Buttons.Help }],
   ],
