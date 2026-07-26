@@ -6,6 +6,33 @@ import { Callback } from '../constants/callbacks';
 import { env } from '../config/env';
 import { escapeHtml } from '../utils/format';
 
+const homeMenuKeyboard = (isOwner: boolean): InlineKeyboardMarkup => {
+  const rows: InlineKeyboardMarkup['inline_keyboard'] = [
+    [
+      { text: '🤖 AI Assistant', callback_data: 'menu:ai' },
+      { text: '📁 GitHub Manager', callback_data: 'menu:github' },
+    ],
+    [
+      { text: '📂 File Manager', callback_data: 'menu:file' },
+      { text: '🚀 Deploy', callback_data: 'menu:deploy' },
+    ],
+    [
+      { text: '🌐 Dev Tools', callback_data: 'menu:tools' },
+      { text: '📊 Monitoring', callback_data: 'menu:monitoring' },
+    ],
+    [
+      { text: '⚙️ Settings', callback_data: 'menu:settings' },
+      { text: '👤 Profile', callback_data: 'menu:profile' },
+    ],
+  ];
+
+  if (isOwner) {
+    rows.push([{ text: '👑 Owner Panel', callback_data: 'menu:owner' }]);
+  }
+
+  return { inline_keyboard: rows };
+};
+
 export const showHome = async (ctx: BotContext): Promise<void> => {
   ctx.session.state = 'idle';
   ctx.session.lastMenu = 'home';
@@ -19,9 +46,17 @@ export const showHome = async (ctx: BotContext): Promise<void> => {
       `Halo, <b>${name}</b>!`,
       'Bot siap membantu AI coding, GitHub manager, file manager, deployment, developer tools, monitoring, dan settings.',
       '',
-      'Gunakan Reply Keyboard permanen di bawah untuk berpindah fitur utama.',
-      'Navigasi di dalam fitur menggunakan Inline Keyboard.',
+      'Reply Keyboard di bawah sekarang khusus tombol cepat:',
+      '🏓 Ping • ⏱ Runtime • 📈 Status • ❓ Help',
+      '',
+      'Menu fitur utama dipindahkan ke tombol inline di chat.',
     ].join('\n'),
+  );
+
+  await replyWithInlineKeyboard(
+    ctx,
+    '📌 <b>Menu Fitur</b>\n\nPilih fitur yang ingin dibuka:',
+    homeMenuKeyboard(ctx.from?.id === env.OWNER_TELEGRAM_ID),
   );
 };
 
